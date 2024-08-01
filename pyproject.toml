@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "simple_rag"
+version = "0.1.0"
+description = ""
+authors = ["wei wei <cleaner.leon@outlook.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.9"
+pysqlite3-binary = "^0.5.3"
+chromadb = "^0.5.5"
+llama-index = "^0.10.58"
+llama-index-vector-stores-chroma = "^0.1.10"
+llama-index-embeddings-huggingface = "^0.2.2"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
