@@ -10,18 +10,22 @@ from llama_index.core.postprocessor import SentenceTransformerRerank
 from llama_index.core.retrievers import QueryFusionRetriever
 from llama_index.core.query_engine import RetrieverQueryEngine
 from llama_index.core.chat_engine import CondenseQuestionChatEngine
+from llama_index.core.ingestion import IngestionPipeline
+from llama_index.core.extractors import TitleExtractor
 from llama_index.readers.file import PyMuPDFReader
 from llama_index.vector_stores.chroma import ChromaVectorStore
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.llms.llama_cpp import LlamaCPP
+import gradio as gr
 
 EMBEDDING_MODEL = "BAAI/bge-large-zh-v1.5"
 RERANK_MODEL = "BAAI/bge-reranker-large"
 LLM_MODEL = 'qwen/qwen2-1.5b'
-LLM_PATH = 'qwen2-1_5b-instruct-q5_k_m.gguf'
+LLM_PATH = 'qwen2-7b-instruct-q5_k_m.gguf'
 COLLATION_NAME = 'MyLibrary'
 DB_PATH = './chroma_db'
 DOC_DIR = './docs'
+PIPELINE_CACHE = './cache'
 
 class SimpleRag:
     def __init__(self):
@@ -42,16 +46,24 @@ class SimpleRag:
         # self.index = None
         print('load vector db')
         if chroma_collection.count() == 0:
+
             documents = SimpleDirectoryReader(
-                DOC_DIR, 
-                file_extractor={".pdf": PyMuPDFReader()}, 
+                DOC_DIR,
+                file_extractor={".pdf": PyMuPDFReader()},
                 recursive=True).load_data()
-            splitter = SentenceSplitter(chunk_size=300, chunk_overlap=100)
-            nodes = splitter.get_nodes_from_documents(documents)
-            storage_context = StorageContext.from_defaults(vector_store=vector_store)
-            self.index = VectorStoreIndex(
-                nodes, storage_context=storage_context
+            pipeline = IngestionPipeline(
+                transformations=[
+                    SentenceSplitter(chunk_size=300, chunk_overlap=100),
+                    # TitleExtractor(), # 利用 LLM 对文本生成标题
+                    Settings.embed_model
+                ],
+                vector_store=vector_store,
             )
+            if os.path.exists(PIPELINE_CACHE):
+                pipeline.load(PIPELINE_CACHE)
+            pipeline.run(documents=documents)
+            pipeline.persist(PIPELINE_CACHE)
+            self.index = VectorStoreIndex.from_vector_store(vector_store)
         else:
             self.index = VectorStoreIndex.from_vector_store(
                 vector_store
@@ -74,20 +86,40 @@ class SimpleRag:
             fusion_retriever,
             node_postprocessors=[reranker]
         )
-
         self.chat_engine = CondenseQuestionChatEngine.from_defaults(
             query_engine=query_engine, 
         )
 
-    def run(self):
+    def run_cli(self):
+        print('Press Enter to exit')
         while True:
-            question = input("User:")
+            question = input("User>>>: ")
             if question.strip() == "":
                 break
             response = self.chat_engine.chat(question)
-            print(f"AI: {response}")
+            print(f"AI>>>: {response}")
 
+    def chat(self, question):
+        response = self.chat_engine.chat(question)
+        return response
+
+    def run_web(self):
+        demo = gr.Interface(
+            fn=self.chat,
+            inputs=gr.Textbox(lines=3, placeholder="Ask Question..."),
+            outputs="text",
+        )
+        demo.launch()
 
 if __name__ == '__main__':
+    if len(sys.argv) < 2:
+        print(f"{sys.argv[0]} [cli|web]")
+        exit(255)
+    if sys.argv[1] != 'cli' and sys.argv[1] != 'web':
+        print(f"{sys.argv[0]} [cli|web]")
+        exit(255)
     rag = SimpleRag()
-    rag.run()
+    if sys.argv[1] == 'cli':
+        rag.run_cli()
+    else:
+        rag.run_web()

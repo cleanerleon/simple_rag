@@ -12,6 +12,9 @@ chromadb = "^0.5.5"
 llama-index = "^0.10.58"
 llama-index-vector-stores-chroma = "^0.1.10"
 llama-index-embeddings-huggingface = "^0.2.2"
+llama-index-llms-llama-cpp = "^0.1.4"
+gradio = "^4.40.0"
+pymupdf = "^1.24.9"
 
 
 [build-system]

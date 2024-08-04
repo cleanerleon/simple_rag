@@ -1,11 +1,11 @@
 # 简介
-本程序实现一个简单的可以离线使用的rag系统。
+本程序实现一个简单的可以离线使用的rag系统，支持命令行和WebUI。
 
 # 技术栈
 - sdk：llamaindex
 - 向量数据库：chroma
 - embeding模型：BAAI/bge-large-zh-v1.5
-- LLM模型：qwen/qwen2-1.5b
+- LLM模型：qwen/qwen2-7b
 - 后排序模型：BAAI/bge-reranker-large
 
 # 运行前准备
@@ -19,7 +19,7 @@ poetry install
 ```shell
 huggingface-cli download BAAI/bge-reranker-large
 huggingface-cli download BAAI/bge-large-zh-v1.5
-huggingface-cli download Qwen/Qwen2-1.5B-Instruct-GGUF qwen2-1_5b-instruct-q5_k_m.gguf --local-dir . --local-dir-use-symlinks False
+huggingface-cli download Qwen/Qwen2-7B-Instruct-GGUF qwen2-7b-instruct-q5_k_m.gguf --local-dir . --local-dir-use-symlinks False
 ```
 
 - 放置文档
@@ -27,7 +27,7 @@ huggingface-cli download Qwen/Qwen2-1.5B-Instruct-GGUF qwen2-1_5b-instruct-q5_k_
 
 # 运行Demo
 ```shell
-python3 main.py 
+python3 main.py cli
 load embedding model
 load llm model
 load vector db
